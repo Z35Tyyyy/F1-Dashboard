@@ -1,45 +1,66 @@
-import { Link } from 'react-router-dom';
-import { Flag, Users, Calendar, Radio, Cloud } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Users,
+  CalendarDays,
+  CalendarClock,
+  Radio,
+  CloudSun,
+  Trophy,
+  Flag,
+  Timer,
+  Disc3,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+
+const links: { to: string; label: string; icon: ReactNode }[] = [
+  { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
+  { to: '/schedule', label: 'Schedule', icon: <CalendarClock size={16} /> },
+  { to: '/results', label: 'Results', icon: <Flag size={16} /> },
+  { to: '/qualifying', label: 'Qualifying', icon: <Timer size={16} /> },
+  { to: '/strategy', label: 'Strategy', icon: <Disc3 size={16} /> },
+  { to: '/drivers', label: 'Drivers', icon: <Users size={16} /> },
+  { to: '/standings', label: 'Standings', icon: <Trophy size={16} /> },
+  { to: '/sessions', label: 'Sessions', icon: <CalendarDays size={16} /> },
+  { to: '/team-radio', label: 'Radio', icon: <Radio size={16} /> },
+  { to: '/weather', label: 'Weather', icon: <CloudSun size={16} /> },
+];
 
 function Navbar() {
   return (
-    <nav className="bg-neo-gray border-b-4 border-neo-purple">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-3 hover:translate-y-[-2px] transition-transform">
-            <Flag className="w-10 h-10 text-neo-purple" />
-            <span className="text-2xl font-black text-neo-white tracking-superwide uppercase font-display">F1 Dash</span>
-          </Link>
-          <div className="flex space-x-4">
-            <Link
-              to="/drivers"
-              className="flex items-center space-x-2 text-neo-black hover:translate-y-[-2px] transition-transform bg-neo-pink px-5 py-2 rounded-lg border-4 border-neo-black shadow-neo shadow-neo-black font-black uppercase tracking-wider font-display"
+    <nav className="sticky top-0 z-50 border-b border-white/[0.07] bg-carbon/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-4">
+        <NavLink to="/" end className="mr-1 flex shrink-0 items-center gap-2">
+          <span className="h-4 w-1.5 -skew-x-12 bg-accent shadow-[0_0_12px_2px_rgba(225,6,0,0.6)]" />
+          <span className="text-sm font-bold uppercase tracking-wide text-white">
+            F1<span className="hidden text-zinc-500 sm:inline"> Dashboard</span>
+          </span>
+        </NavLink>
+
+        <div className="flex items-center gap-0.5 overflow-x-auto">
+          {links.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              title={label}
+              className={({ isActive }) =>
+                `relative flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-sm font-semibold uppercase tracking-wide transition-colors ${
+                  isActive ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'
+                }`
+              }
             >
-              <Users className="w-5 h-5" />
-              <span>Drivers</span>
-            </Link>
-            <Link
-              to="/sessions"
-              className="flex items-center space-x-2 text-neo-black hover:translate-y-[-2px] transition-transform bg-neo-green px-5 py-2 rounded-lg border-4 border-neo-black shadow-neo shadow-neo-black font-black uppercase tracking-wider font-display"
-            >
-              <Calendar className="w-5 h-5" />
-              <span>Sessions</span>
-            </Link>
-            <Link
-              to="/team-radio"
-              className="flex items-center space-x-2 text-neo-black hover:translate-y-[-2px] transition-transform bg-neo-yellow px-5 py-2 rounded-lg border-4 border-neo-black shadow-neo shadow-neo-black font-black uppercase tracking-wider font-display"
-            >
-              <Radio className="w-5 h-5" />
-              <span>Radio</span>
-            </Link>
-            <Link
-              to="/weather"
-              className="flex items-center space-x-2 text-neo-black hover:translate-y-[-2px] transition-transform bg-neo-blue px-5 py-2 rounded-lg border-4 border-neo-black shadow-neo shadow-neo-black font-black uppercase tracking-wider font-display"
-            >
-              <Cloud className="w-5 h-5" />
-              <span>Weather</span>
-            </Link>
-          </div>
+              {({ isActive }) => (
+                <>
+                  {icon}
+                  <span className="hidden xl:inline">{label}</span>
+                  {isActive && (
+                    <span className="absolute inset-x-1 -bottom-[9px] h-0.5 bg-accent" aria-hidden />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
         </div>
       </div>
     </nav>

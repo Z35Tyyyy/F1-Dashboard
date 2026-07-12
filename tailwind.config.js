@@ -4,27 +4,29 @@ export default {
   theme: {
     extend: {
       colors: {
-        'neo-black': '#0A0A0A',
-        'neo-purple': '#C4B5FD',
-        'neo-pink': '#FDA4AF',
-        'neo-blue': '#93C5FD',
-        'neo-green': '#86EFAC',
-        'neo-yellow': '#FDE68A',
-        'neo-orange': '#FDBA74',
-        'neo-gray': '#1F1F1F',
-        'neo-white': '#F8FAFC',
-      },
-      boxShadow: {
-        'neo': '4px 4px 0 0',
-        'neo-lg': '8px 8px 0 0',
+        // F1 brand: near-black navy background, layered surfaces, signature red.
+        base: '#15151e',
+        panel: '#1f1f27',
+        carbon: '#0d0d12',
+        accent: '#e10600', // F1 red
+        'accent-soft': '#ff2b20', // brighter red for text/lines on dark
       },
       fontFamily: {
-        'display': ['system-ui', 'sans-serif'],
-        'mono': ['JetBrains Mono', 'monospace'],
+        // Titillium Web is Formula 1's brand typeface (free / open source).
+        sans: ['Titillium Web', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
-      letterSpacing: {
-        'tighter': '-0.05em',
-        'superwide': '0.25em',
+      boxShadow: {
+        soft: '0 10px 40px -12px rgba(0,0,0,0.7)',
+      },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.4s ease-out both',
       },
     },
   },

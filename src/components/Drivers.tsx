@@ -1,106 +1,93 @@
-import React from 'react';
 import { useQuery } from 'react-query';
-import {
-  Globe,
-  User,
-  Hash,
-  BadgeInfo,
-  CalendarDays
-} from 'lucide-react';
+import { Timer, Wrench, Trophy } from 'lucide-react';
+import { api } from '../lib/api';
+import { formatLap } from '../lib/format';
+import type { Driver, DriverStats } from '../lib/types';
+import { PageHeader, StateMsg } from './ui';
+import SessionBanner from './SessionBanner';
 
 function Drivers() {
-  const { data: drivers, isLoading } = useQuery('drivers', async () => {
-    const response = await fetch('http://localhost:8000/drivers');
-    return response.json();
-  });
+  const { data: drivers, isLoading, isError } = useQuery<Driver[]>('drivers', () =>
+    api.getDrivers()
+  );
+  const { data: driverStats } = useQuery<Record<string, DriverStats>>('driverStats', () =>
+    api.getDriverStats()
+  );
 
-  const { data: sessions } = useQuery('sessions', async () => {
-    const response = await fetch('http://localhost:8000/sessions');
-    return response.json();
-  });
-
-  const enrichedDrivers = React.useMemo(() => {
-    if (!drivers || !sessions) return [];
-
-    const sessionMap = new Map();
-    sessions.forEach((session: any) => {
-      sessionMap.set(session.session_key, {
-        session_name: session.session_name,
-        country_code: session.country_code,
-        date: session.date_start,
-      });
-    });
-
-    return drivers
-      .map((driver: any) => {
-        const session = sessionMap.get(driver.session_key);
-        return {
-          ...driver,
-          session_name: session?.session_name || 'Unknown Session',
-          session_country: session?.country_code || 'ZZ',
-          session_date: session?.date || '',
-        };
+  const ordered = Array.isArray(drivers)
+    ? [...drivers].sort((a, b) => {
+        const pa = driverStats?.[a.driver_number]?.position ?? 99;
+        const pb = driverStats?.[b.driver_number]?.position ?? 99;
+        return pa - pb || a.driver_number - b.driver_number;
       })
-      .sort((a: any, b: any) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime());
-  }, [drivers, sessions]);
-
-  if (isLoading || !drivers || !sessions) {
-    return (
-      <div className="text-center text-white text-xl font-bold">Loading drivers...</div>
-    );
-  }
+    : [];
 
   return (
-    <div className="space-y-8 bg-black min-h-screen p-6">
-      <h1 className="text-4xl font-bold text-white border-b-4 border-neo-pink pb-2">
-        F1 Drivers
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {enrichedDrivers.map((driver: any) => (
-          <div
-            key={driver.driver_number}
-            className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl shadow-lg transform hover:-translate-y-1 hover:border-neo-pink transition-all duration-200 hover:shadow-[0_4px_20px_rgba(192,132,252,0.5)]"
-          >
-            <div className="flex items-center gap-4">
-              <img
-                src={driver.headshot_url}
-                alt={driver.full_name}
-                className="w-16 h-16 rounded-full border border-zinc-700 object-cover"
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader title="Drivers" subtitle="Grid for the latest session, with each driver's session stats." />
+      <SessionBanner />
+
+      {isError && <StateMsg kind="error">Failed to load drivers.</StateMsg>}
+      {isLoading && <StateMsg>Loading drivers…</StateMsg>}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ordered.map((driver) => {
+          const stats = driverStats?.[driver.driver_number];
+          const color = `#${driver.team_colour || '9ca3af'}`;
+          return (
+            <div
+              key={`${driver.session_key}-${driver.driver_number}`}
+              className="card card-hover relative overflow-hidden p-5"
+            >
+              {/* team-colour spine */}
+              <span
+                className="absolute left-0 top-0 h-full w-1"
+                style={{ backgroundColor: color }}
               />
-              <div>
-                <h2 className="text-2xl font-semibold text-white">
-                  {driver.broadcast_name}
-                </h2>
-                <p className="text-sm text-zinc-400">{driver.name_acronym}</p>
+              <div className="flex items-center gap-4">
+                <img
+                  src={driver.headshot_url}
+                  alt={driver.full_name}
+                  loading="lazy"
+                  className="h-14 w-14 rounded-full border border-white/10 object-cover bg-white/5"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate text-lg font-semibold text-white">{driver.full_name}</h2>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-sm">
+                    <span className="font-mono text-zinc-500">#{driver.driver_number}</span>
+                    <span className="text-zinc-600">·</span>
+                    <span className="inline-flex items-center gap-1.5 text-zinc-400">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                      {driver.team_name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
+                  <Trophy size={14} className="mx-auto text-amber-400" />
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Pos</div>
+                  <div className="font-mono text-base text-white">{stats?.position ?? '—'}</div>
+                </div>
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
+                  <Timer size={14} className="mx-auto text-emerald-400" />
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Best lap</div>
+                  <div className="font-mono text-sm text-white">
+                    {stats?.best_lap != null ? formatLap(stats.best_lap) : '—'}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
+                  <Wrench size={14} className="mx-auto text-sky-400" />
+                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Pits</div>
+                  <div className="font-mono text-base text-white">{stats?.pit_stops ?? 0}</div>
+                </div>
               </div>
             </div>
-            <div className="mt-4 space-y-2 text-sm">
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 text-white flex items-center gap-2">
-                <User size={16} /> Full Name: {driver.full_name}
-              </p>
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 text-white flex items-center gap-2">
-                <Hash size={16} /> Driver Number: {driver.driver_number}
-              </p>
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 flex items-center gap-2">
-                <BadgeInfo size={16} />
-                <span style={{ color: `#${driver.team_colour}` }}>
-                  Team: {driver.team_name}
-                </span>
-              </p>
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 text-white flex items-center gap-2">
-                <Globe size={16} /> Race Country:{' '}
-                <span className="uppercase">{driver.session_country}</span>
-              </p>
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 text-white flex items-center gap-2">
-                <CalendarDays size={16} /> Session: {driver.session_name}
-              </p>
-              <p className="bg-zinc-800 px-3 py-1 rounded border border-zinc-600 text-white flex items-center gap-2">
-                <CalendarDays size={16} />
-                {new Date(driver.session_date).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
