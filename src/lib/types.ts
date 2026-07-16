@@ -5,11 +5,13 @@ export interface Driver {
   driver_number: number;
   broadcast_name: string;
   full_name: string;
+  first_name: string;
+  last_name: string;
   name_acronym: string;
   team_name: string;
   team_colour: string;
   headshot_url: string;
-  country_code: string;
+  country_code: string | null;
   session_key: number;
   meeting_key: number;
 }
@@ -144,6 +146,16 @@ export interface SessionResult {
   dsq: boolean;
   duration: number | number[] | null;
   gap_to_leader: number | string | null;
+}
+
+export interface TrackPoint {
+  x: number;
+  y: number;
+}
+
+export interface TrackLaps {
+  outline: TrackPoint[];
+  laps: { lap: number; points: TrackPoint[] }[];
 }
 
 export interface Stint {

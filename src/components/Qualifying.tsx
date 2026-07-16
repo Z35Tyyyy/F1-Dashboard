@@ -6,7 +6,7 @@ import { PageHeader, StateMsg } from './ui';
 const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500';
 const td = 'px-4 py-3';
 
-function Qualifying() {
+function Qualifying({ embedded = false }: { embedded?: boolean }) {
   const { data, isLoading, isError } = useQuery<QualifyingRace>('qualifying', () =>
     api.getQualifying()
   );
@@ -15,14 +15,16 @@ function Qualifying() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Qualifying"
-        subtitle={
-          data?.raceName
-            ? `${data.raceName}${data.round ? ` · round ${data.round}` : ''} — Q1 / Q2 / Q3`
-            : 'Latest weekend — Q1 / Q2 / Q3'
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title="Qualifying"
+          subtitle={
+            data?.raceName
+              ? `${data.raceName}${data.round ? ` · round ${data.round}` : ''} — Q1 / Q2 / Q3`
+              : 'Latest weekend — Q1 / Q2 / Q3'
+          }
+        />
+      )}
 
       {isLoading && <StateMsg>Loading qualifying…</StateMsg>}
       {isError && <StateMsg kind="error">Failed to load qualifying.</StateMsg>}

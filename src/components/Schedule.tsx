@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from 'react-query';
-import { MapPin, Flag, CalendarClock } from 'lucide-react';
+import { MapPin, CalendarClock } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatIST, formatISTDate } from '../lib/format';
 import type { ScheduleRace } from '../lib/types';
-import { PageHeader, StateMsg } from './ui';
+import { PageHeader, StateMsg, CountryFlag } from './ui';
 
 function raceStart(r: ScheduleRace): Date {
   return new Date(`${r.date}T${r.time || '00:00:00Z'}`);
@@ -58,21 +58,24 @@ function Schedule() {
       {nextRace && (
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-6 p-6">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-accent-soft">
-                <span className="f1-bar !h-4" /> Next Race · Round {nextRace.round}
+            <div className="flex items-center gap-4">
+              <CountryFlag country={nextRace.Circuit.Location.country} className="h-12" width="w320" />
+              <div>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-accent-soft">
+                  <span className="f1-bar !h-4" /> Next Race · Round {nextRace.round}
+                </div>
+                <h2 className="mt-2 font-display text-2xl font-bold uppercase tracking-tight text-white">
+                  {nextRace.raceName}
+                </h2>
+                <p className="mt-1 flex items-center gap-1.5 text-sm text-zinc-400">
+                  <MapPin size={14} className="text-zinc-600" />
+                  {nextRace.Circuit.circuitName}, {nextRace.Circuit.Location.country}
+                </p>
+                <p className="mt-1 flex items-center gap-1.5 font-mono text-sm text-zinc-300">
+                  <CalendarClock size={14} className="text-zinc-600" />
+                  {formatIST(raceStart(nextRace).toISOString())}
+                </p>
               </div>
-              <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-white">
-                {nextRace.raceName}
-              </h2>
-              <p className="mt-1 flex items-center gap-1.5 text-sm text-zinc-400">
-                <MapPin size={14} className="text-zinc-600" />
-                {nextRace.Circuit.circuitName}, {nextRace.Circuit.Location.country}
-              </p>
-              <p className="mt-1 flex items-center gap-1.5 font-mono text-sm text-zinc-300">
-                <CalendarClock size={14} className="text-zinc-600" />
-                {formatIST(raceStart(nextRace).toISOString())}
-              </p>
             </div>
             <div className="flex gap-4 sm:gap-6">
               <CountdownUnit value={d} label="Days" />
@@ -98,13 +101,7 @@ function Schedule() {
                 }`}
               >
                 <span className="w-8 shrink-0 font-mono text-sm text-zinc-500">R{r.round}</span>
-                <span
-                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.04] ${
-                    isNext ? 'text-accent-soft' : 'text-zinc-500'
-                  }`}
-                >
-                  <Flag size={16} />
-                </span>
+                <CountryFlag country={r.Circuit.Location.country} className="h-8" width="w160" />
                 <div className="min-w-[12rem]">
                   <div className="font-medium text-white">{r.raceName}</div>
                   <div className="text-xs text-zinc-500">

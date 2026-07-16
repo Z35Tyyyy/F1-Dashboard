@@ -1,12 +1,30 @@
 import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { api } from '../lib/api';
+import { teamLogo } from '../lib/format';
 import type {
   ConstructorStandingsList,
   DriverStandingsList,
   FormResult,
 } from '../lib/types';
 import { PageHeader, StateMsg } from './ui';
+
+function TeamCell({ name, big = false }: { name?: string; big?: boolean }) {
+  const logo = teamLogo(name);
+  return (
+    <span className="flex items-center gap-2.5">
+      {logo && (
+        <img
+          src={logo}
+          alt=""
+          className={`w-auto object-contain ${big ? 'h-5 max-w-[30px]' : 'h-4 max-w-[26px]'}`}
+          onError={(e) => (e.currentTarget.style.display = 'none')}
+        />
+      )}
+      {name ?? '—'}
+    </span>
+  );
+}
 
 type Tab = 'drivers' | 'constructors';
 
@@ -117,7 +135,9 @@ function Standings() {
                     {s.Driver.givenName} {s.Driver.familyName}
                     <span className="ml-2 font-mono text-xs text-zinc-600">{s.Driver.code}</span>
                   </td>
-                  <td className={`${td} text-zinc-400`}>{s.Constructors[0]?.name ?? '—'}</td>
+                  <td className={`${td} text-zinc-300`}>
+                    <TeamCell name={s.Constructors[0]?.name} />
+                  </td>
                   <td className={td}>
                     <FormChips results={form.data?.[s.Driver.driverId]} />
                   </td>
@@ -149,7 +169,9 @@ function Standings() {
                   className="border-t border-white/[0.05] hover:bg-white/[0.02]"
                 >
                   <td className={`${td} font-mono text-zinc-500`}>{s.position}</td>
-                  <td className={`${td} font-medium text-white`}>{s.Constructor.name}</td>
+                  <td className={`${td} font-medium text-white`}>
+                    <TeamCell name={s.Constructor.name} big />
+                  </td>
                   <td className={`${td} text-zinc-400`}>{s.Constructor.nationality}</td>
                   <td className={`${td} text-right font-mono text-zinc-400`}>{s.wins}</td>
                   <td className={`${td} text-right font-mono font-semibold text-white`}>{s.points}</td>

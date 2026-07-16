@@ -4,15 +4,11 @@
 
 @layer base {
   :root {
-    /* Render native controls (selects + their dropdowns, audio player,
-       scrollbars, form fields) in dark mode. */
     color-scheme: dark;
   }
 
   html,
   body {
-    /* Never allow horizontal scroll/growth — charts and wide tables stay clipped
-       to their own scroll containers instead of widening the whole page. */
     max-width: 100%;
     overflow-x: hidden;
   }
@@ -21,55 +17,53 @@
     scroll-behavior: smooth;
   }
 
-  /* Visible keyboard focus for accessibility, without affecting mouse users. */
   :focus-visible {
-    outline: 2px solid rgba(255, 106, 90, 0.7);
+    outline: 2px solid rgba(255, 45, 26, 0.75);
     outline-offset: 2px;
     border-radius: 4px;
   }
 
   body {
-    @apply bg-base text-zinc-200 font-sans antialiased;
-    /* F1 near-black with a faint red pit-lane glow up top. */
+    @apply bg-base text-zinc-300 font-sans antialiased;
+    /* Rich near-black with a red pit-lane glow and a cool counter-light. */
     background-image:
-      radial-gradient(65rem 42rem at 50% -12rem, rgba(225, 6, 0, 0.09), transparent 70%),
-      radial-gradient(50rem 40rem at 100% 0%, rgba(120, 120, 160, 0.04), transparent 60%);
+      radial-gradient(70rem 44rem at 50% -14rem, rgba(225, 6, 0, 0.13), transparent 68%),
+      radial-gradient(48rem 40rem at 100% 0%, rgba(80, 90, 130, 0.06), transparent 60%);
     background-attachment: fixed;
   }
 
   ::selection {
-    @apply bg-accent/30 text-white;
+    @apply bg-accent/40 text-white;
   }
 
-  /* Slim, unobtrusive scrollbars. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
   }
   *::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   *::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.14);
     border-radius: 9999px;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.24);
   }
 }
 
 @layer components {
-  /* Shared surface: squared, technical, hairline border, faint fill. */
+  /* Elevated surface with a faint top sheen. */
   .card {
-    @apply rounded-lg border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm transition-colors duration-200;
+    @apply rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.035] to-white/[0.01] backdrop-blur-sm transition-colors duration-200;
   }
   .card-hover {
-    @apply hover:border-white/[0.16] hover:bg-white/[0.04];
+    @apply hover:border-white/[0.18] hover:from-white/[0.06];
   }
 
-  /* Signature: a forward-leaning red bar beside section titles (F1 logo lean). */
+  /* Signature: forward-leaning red bar beside titles (echoes the F1 mark). */
   .f1-bar {
-    @apply inline-block h-6 w-1.5 -skew-x-12 bg-accent;
+    @apply inline-block h-6 w-1.5 -skew-x-[14deg] bg-accent;
   }
 }

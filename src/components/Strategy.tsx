@@ -15,7 +15,7 @@ const COMPOUND: Record<string, { bg: string; text: string; label: string }> = {
 };
 const fallback = { bg: '#52525b', text: '#fff', label: '?' };
 
-function Strategy() {
+function Strategy({ embedded = false }: { embedded?: boolean }) {
   const { data: stints, isLoading, isError } = useQuery<Stint[]>('stints', () => api.getStints());
   const { data: drivers } = useQuery<Driver[]>('drivers', () => api.getDrivers());
   const { data: results } = useQuery<SessionResult[]>('results', () => api.getResults());
@@ -55,11 +55,15 @@ function Strategy() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Tyre Strategy"
-        subtitle="Stint-by-stint tyre compounds for every driver in the latest session."
-      />
-      <SessionBanner />
+      {!embedded && (
+        <>
+          <PageHeader
+            title="Tyre Strategy"
+            subtitle="Stint-by-stint tyre compounds for every driver in the latest session."
+          />
+          <SessionBanner />
+        </>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-zinc-400">

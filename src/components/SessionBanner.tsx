@@ -1,8 +1,9 @@
 import { useQuery } from 'react-query';
-import { MapPin, CalendarClock, Flag } from 'lucide-react';
+import { MapPin, CalendarClock } from 'lucide-react';
 import { api } from '../lib/api';
 import { formatIST } from '../lib/format';
 import type { SessionContext } from '../lib/types';
+import { CountryFlag } from './ui';
 
 // Descriptive context strip: which race + session we're looking at, where, and when (IST).
 // Pass a sessionKey to describe a specific session; omit for the latest one.
@@ -23,9 +24,7 @@ export default function SessionBanner({ sessionKey }: { sessionKey?: number }) {
   return (
     <div className="card flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent/15 text-accent-soft">
-          <Flag size={17} />
-        </span>
+        <CountryFlag country={data.country_name} className="h-8" width="w320" />
         <div>
           <div className="text-base font-semibold text-white leading-tight">{race}</div>
           <div className="text-xs text-zinc-500">

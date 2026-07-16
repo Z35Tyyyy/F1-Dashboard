@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 
 import httpx
@@ -154,6 +155,90 @@ async def get_weather(session_key: Optional[str] = None):
 @app.get("/race-control")
 async def get_race_control(session_key: Optional[str] = None):
     return await fetch_openf1("race_control", {"session_key": session_key or "latest"}, ttl=30)
+
+
+def _fast_lap_window(laps):
+    """(start_iso, end_iso) of the driver's fastest clean flying lap, or None."""
+    if not isinstance(laps, list):
+        return None
+    good = [
+        l
+        for l in laps
+        if l.get("lap_duration") and l.get("date_start") and not l.get("is_pit_out_lap")
+    ]
+    if not good:
+        return None
+    fast = min(good, key=lambda l: l["lap_duration"])
+    start = fast["date_start"]
+    try:
+        end = (datetime.fromisoformat(start) + timedelta(seconds=fast["lap_duration"] + 1)).isoformat()
+    except ValueError:
+        return None
+    return start, end
+
+
+@app.get("/track-laps")
+async def get_track_laps(
+    session_key: Optional[str] = None, driver_number: int = 1, per_lap: int = 140
+):
+    # For the animated timelapse: the static circuit outline (fastest lap) plus
+    # each racing lap's ordered x/y points, downsampled per lap.
+    sk = session_key or "latest"
+    laps = await fetch_openf1("laps", {"session_key": sk, "driver_number": driver_number}, ttl=600)
+    loc = await fetch_openf1("location", {"session_key": sk, "driver_number": driver_number}, ttl=600)
+    if not isinstance(loc, list):
+        return {"outline": [], "laps": []}
+    pts = [p for p in loc if p.get("x") is not None and p.get("y") is not None and not (p["x"] == 0 and p["y"] == 0)]
+    pts.sort(key=lambda p: p.get("date", ""))
+
+    good = []
+    if isinstance(laps, list):
+        good = [l for l in laps if l.get("date_start") and l.get("lap_duration") and not l.get("is_pit_out_lap")]
+
+    def lap_points(lap):
+        start = lap["date_start"]
+        try:
+            end = (datetime.fromisoformat(start) + timedelta(seconds=lap["lap_duration"] + 1)).isoformat()
+        except ValueError:
+            return []
+        return [{"x": p["x"], "y": p["y"]} for p in pts if start <= p.get("date", "") <= end]
+
+    lap_list = []
+    for lap in sorted(good, key=lambda l: l.get("lap_number", 0)):
+        lp = _downsample(lap_points(lap), per_lap)
+        if len(lp) > 20:
+            lap_list.append({"lap": lap.get("lap_number"), "points": lp})
+
+    outline = []
+    if good:
+        fastest = min(good, key=lambda l: l["lap_duration"])
+        outline = _downsample(lap_points(fastest), 400)
+    return {"outline": outline, "laps": lap_list}
+
+
+@app.get("/track-map")
+async def get_track_map(
+    session_key: Optional[str] = None, driver_number: int = 1, points: int = 800
+):
+    # Plotting the whole session overlays every lap into a fuzzy blob. Instead,
+    # isolate the driver's single fastest (clean) lap so the outline is crisp.
+    sk = session_key or "latest"
+    laps = await fetch_openf1("laps", {"session_key": sk, "driver_number": driver_number}, ttl=600)
+    loc = await fetch_openf1(
+        "location", {"session_key": sk, "driver_number": driver_number}, ttl=600
+    )
+    if not isinstance(loc, list):
+        return []
+    window = _fast_lap_window(laps)  # (start, end) ISO strings, comparable lexicographically
+    pts = []
+    for p in loc:
+        x, y = p.get("x"), p.get("y")
+        if x is None or y is None or (x == 0 and y == 0):
+            continue
+        if window and not (window[0] <= p.get("date", "") <= window[1]):
+            continue
+        pts.append({"x": x, "y": y})
+    return _downsample(pts, max(100, min(points, 3000)))
 
 
 @app.get("/driver-stats")

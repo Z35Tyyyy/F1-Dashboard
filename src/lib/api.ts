@@ -15,6 +15,8 @@ import type {
   SessionResult,
   Stint,
   TeamRadioMessage,
+  TrackLaps,
+  TrackPoint,
   Weather,
 } from './types';
 
@@ -72,4 +74,19 @@ export const api = {
   getStints: (sessionKey?: number) => getJSON<Stint[]>(`/stints${withSession(sessionKey)}`),
   getSchedule: () => getJSON<ScheduleRace[]>('/schedule'),
   getQualifying: () => getJSON<QualifyingRace>('/qualifying'),
+  getTrackMap: (driverNumber?: number, sessionKey?: number) => {
+    const params = new URLSearchParams();
+    if (driverNumber != null) params.set('driver_number', String(driverNumber));
+    if (sessionKey != null) params.set('session_key', String(sessionKey));
+    const qs = params.toString();
+    return getJSON<TrackPoint[]>(`/track-map${qs ? `?${qs}` : ''}`);
+  },
+  getTrackLaps: (driverNumber?: number, sessionKey?: number) => {
+    const params = new URLSearchParams();
+    if (driverNumber != null) params.set('driver_number', String(driverNumber));
+    if (sessionKey != null) params.set('session_key', String(sessionKey));
+    const qs = params.toString();
+    return getJSON<TrackLaps>(`/track-laps${qs ? `?${qs}` : ''}`);
+  },
 };
+

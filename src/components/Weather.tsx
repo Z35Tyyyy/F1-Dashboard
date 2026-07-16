@@ -1,3 +1,4 @@
+import { lazy, Suspense, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { Droplets, Wind, Thermometer, Umbrella, Gauge, Navigation } from 'lucide-react';
 import { api } from '../lib/api';
@@ -5,6 +6,8 @@ import { formatISTTime, compass } from '../lib/format';
 import type { Weather as WeatherSample } from '../lib/types';
 import { PageHeader, StateMsg } from './ui';
 import SessionBanner from './SessionBanner';
+
+const WeatherCharts = lazy(() => import('./WeatherCharts'));
 
 function Metric({
   icon,
@@ -35,42 +38,62 @@ function Metric({
   );
 }
 
-function Weather() {
+function Weather({ sessionKey, embedded = false }: { sessionKey?: number; embedded?: boolean }) {
   const { data: weather, isLoading, isError } = useQuery<WeatherSample[]>(
-    'weather',
-    () => api.getWeather(),
+    ['weather', sessionKey ?? 'latest'],
+    () => api.getWeather(sessionKey),
     { staleTime: 5 * 60 * 1000 }
   );
 
-  // Show the most recent samples first (weather is one reading per minute).
-  const samples = Array.isArray(weather)
-    ? [...weather].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    : [];
-  const latest = samples[0];
+  // Chronological for the charts; the newest sample drives "current conditions".
+  const series = useMemo(
+    () =>
+      Array.isArray(weather)
+        ? [...weather].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        : [],
+    [weather]
+  );
+  const latest = series[series.length - 1];
+
+  const chartData = useMemo(
+    () =>
+      series.map((s) => ({
+        time: formatISTTime(s.date),
+        air: s.air_temperature ?? null,
+        track: s.track_temperature ?? null,
+        humidity: s.humidity ?? null,
+        wind: s.wind_speed ?? null,
+        pressure: s.pressure ?? null,
+      })),
+    [series]
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Track Weather"
-        subtitle="Live trackside conditions for the session below — readings shown in IST."
-      />
-      <SessionBanner />
+      {!embedded && (
+        <>
+          <PageHeader
+            title="Track Weather"
+            subtitle="Trackside conditions across the session — readings in IST."
+          />
+          <SessionBanner sessionKey={sessionKey} />
+        </>
+      )}
 
       {isLoading && <StateMsg>Loading weather…</StateMsg>}
       {isError && <StateMsg kind="error">Failed to load weather data.</StateMsg>}
-      {!isLoading && !isError && samples.length === 0 && (
+      {!isLoading && !isError && series.length === 0 && (
         <StateMsg>No weather data for this session.</StateMsg>
       )}
 
       {latest && (
         <>
-          {/* Headline current conditions */}
           <div className="card p-6">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-medium text-zinc-400">Current conditions</h2>
-              <span className="font-mono text-xs text-zinc-500">
-                as of {formatISTTime(latest.date)}
-              </span>
+              <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-zinc-300">
+                Current conditions
+              </h2>
+              <span className="font-mono text-xs text-zinc-500">as of {formatISTTime(latest.date)}</span>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
               <Metric icon={<Thermometer size={17} />} label="Air" value={latest.air_temperature} unit="°C" tone="text-amber-400" />
@@ -87,38 +110,11 @@ function Weather() {
             </div>
           </div>
 
-          {/* Recent timeline */}
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-zinc-400">
-              Recent readings <span className="text-zinc-600">(newest first, IST)</span>
-            </h3>
-            <div className="overflow-x-auto rounded-2xl border border-white/[0.07]">
-              <table className="w-full text-sm">
-                <thead className="bg-white/[0.02] text-left text-[11px] uppercase tracking-wider text-zinc-500">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Time</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Air °C</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Track °C</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Wind</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Humidity</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Rain</th>
-                  </tr>
-                </thead>
-                <tbody className="font-mono text-zinc-300">
-                  {samples.slice(0, 30).map((s, i) => (
-                    <tr key={`${s.date}-${i}`} className="border-t border-white/[0.05] hover:bg-white/[0.02]">
-                      <td className="px-4 py-2 text-zinc-400">{formatISTTime(s.date)}</td>
-                      <td className="px-4 py-2 text-right">{s.air_temperature ?? '—'}</td>
-                      <td className="px-4 py-2 text-right">{s.track_temperature ?? '—'}</td>
-                      <td className="px-4 py-2 text-right">{s.wind_speed ?? '—'}</td>
-                      <td className="px-4 py-2 text-right">{s.humidity ?? '—'}%</td>
-                      <td className="px-4 py-2 text-right">{s.rainfall ?? 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {chartData.length > 1 && (
+            <Suspense fallback={<StateMsg>Rendering charts…</StateMsg>}>
+              <WeatherCharts data={chartData} />
+            </Suspense>
+          )}
         </>
       )}
     </div>

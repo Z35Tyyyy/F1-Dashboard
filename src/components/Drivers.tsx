@@ -1,91 +1,134 @@
+import { useMemo } from 'react';
 import { useQuery } from 'react-query';
-import { Timer, Wrench, Trophy } from 'lucide-react';
 import { api } from '../lib/api';
-import { formatLap } from '../lib/format';
-import type { Driver, DriverStats } from '../lib/types';
+import { hdPhoto, teamLogo } from '../lib/format';
+import type { Driver, DriverStandingsList } from '../lib/types';
 import { PageHeader, StateMsg } from './ui';
-import SessionBanner from './SessionBanner';
+
+// Jolpica nationality string -> ISO 3166 alpha-2 (for real flag images; emoji
+// flags don't render on Windows). Covers the 2026 grid's nationalities.
+const ISO2: Record<string, string> = {
+  British: 'gb',
+  Dutch: 'nl',
+  Monegasque: 'mc',
+  Spanish: 'es',
+  Mexican: 'mx',
+  Australian: 'au',
+  French: 'fr',
+  German: 'de',
+  Italian: 'it',
+  Finnish: 'fi',
+  Canadian: 'ca',
+  Japanese: 'jp',
+  Thai: 'th',
+  American: 'us',
+  'New Zealander': 'nz',
+  Danish: 'dk',
+  Chinese: 'cn',
+  Brazilian: 'br',
+  Argentine: 'ar',
+  Argentinian: 'ar',
+  Belgian: 'be',
+  Swiss: 'ch',
+  Austrian: 'at',
+};
 
 function Drivers() {
-  const { data: drivers, isLoading, isError } = useQuery<Driver[]>('drivers', () =>
-    api.getDrivers()
-  );
-  const { data: driverStats } = useQuery<Record<string, DriverStats>>('driverStats', () =>
-    api.getDriverStats()
-  );
+  const { data: drivers, isLoading, isError } = useQuery<Driver[]>('drivers', () => api.getDrivers());
+  const standings = useQuery<DriverStandingsList>('driverStandings', () => api.getDriverStandings());
 
-  const ordered = Array.isArray(drivers)
-    ? [...drivers].sort((a, b) => {
-        const pa = driverStats?.[a.driver_number]?.position ?? 99;
-        const pb = driverStats?.[b.driver_number]?.position ?? 99;
-        return pa - pb || a.driver_number - b.driver_number;
-      })
-    : [];
+  // acronym -> championship position + nationality, from Jolpica standings.
+  const meta = useMemo(() => {
+    const m = new Map<string, { pos: number; nat: string }>();
+    standings.data?.DriverStandings?.forEach((s) =>
+      m.set(s.Driver.code ?? '', { pos: Number(s.position), nat: s.Driver.nationality })
+    );
+    return m;
+  }, [standings.data]);
+
+  // Group by team; order teams by their best driver, drivers within team by position.
+  const ordered = useMemo(() => {
+    if (!Array.isArray(drivers)) return [];
+    const teams = new Map<string, Driver[]>();
+    for (const d of drivers) {
+      if (!teams.has(d.team_name)) teams.set(d.team_name, []);
+      teams.get(d.team_name)!.push(d);
+    }
+    const pos = (d: Driver) => meta.get(d.name_acronym)?.pos ?? 99;
+    return [...teams.values()]
+      .map((ds) => ds.sort((a, b) => pos(a) - pos(b)))
+      .sort((a, b) => Math.min(...a.map(pos)) - Math.min(...b.map(pos)))
+      .flat();
+  }, [drivers, meta]);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader title="Drivers" subtitle="Grid for the latest session, with each driver's session stats." />
-      <SessionBanner />
+      <PageHeader title="F1 Drivers" subtitle="The 2026 grid, ordered by team." />
 
       {isError && <StateMsg kind="error">Failed to load drivers.</StateMsg>}
       {isLoading && <StateMsg>Loading drivers…</StateMsg>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ordered.map((driver) => {
-          const stats = driverStats?.[driver.driver_number];
-          const color = `#${driver.team_colour || '9ca3af'}`;
+        {ordered.map((d) => {
+          const color = `#${d.team_colour || '9ca3af'}`;
+          const iso = ISO2[meta.get(d.name_acronym)?.nat ?? ''];
           return (
-            <div
-              key={`${driver.session_key}-${driver.driver_number}`}
-              className="card card-hover relative overflow-hidden p-5"
+            <article
+              key={`${d.session_key}-${d.driver_number}`}
+              className="card card-hover group relative h-[188px] overflow-hidden"
+              style={{ borderBottom: `3px solid ${color}` }}
             >
-              {/* team-colour spine */}
-              <span
-                className="absolute left-0 top-0 h-full w-1"
-                style={{ backgroundColor: color }}
+              {/* team-colour wash */}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.1] transition-opacity group-hover:opacity-20"
+                style={{ background: `linear-gradient(115deg, ${color}, transparent 62%)` }}
               />
-              <div className="flex items-center gap-4">
-                <img
-                  src={driver.headshot_url}
-                  alt={driver.full_name}
-                  loading="lazy"
-                  className="h-14 w-14 rounded-full border border-white/10 object-cover bg-white/5"
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate text-lg font-semibold text-white">{driver.full_name}</h2>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-sm">
-                    <span className="font-mono text-zinc-500">#{driver.driver_number}</span>
-                    <span className="text-zinc-600">·</span>
-                    <span className="inline-flex items-center gap-1.5 text-zinc-400">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                      {driver.team_name}
-                    </span>
-                  </div>
-                </div>
+              {/* big number watermark */}
+              <div className="pointer-events-none absolute -right-1 top-1 select-none font-display text-[6.5rem] font-bold leading-none text-white/[0.06]">
+                {d.driver_number}
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
-                  <Trophy size={14} className="mx-auto text-amber-400" />
-                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Pos</div>
-                  <div className="font-mono text-base text-white">{stats?.position ?? '—'}</div>
+              {/* headshot (HD transform) */}
+              {d.headshot_url && (
+                <img
+                  src={hdPhoto(d.headshot_url)}
+                  alt={d.full_name}
+                  loading="lazy"
+                  className="absolute bottom-0 right-2 h-[168px] w-auto object-contain object-bottom drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)] transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
+
+              <div className="relative flex h-full flex-col justify-between p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-display text-4xl font-bold leading-none" style={{ color }}>
+                    {String(d.driver_number).padStart(2, '0')}
+                  </span>
+                  {iso && (
+                    <img
+                      src={`https://flagcdn.com/w40/${iso}.png`}
+                      alt=""
+                      className="h-3.5 w-auto rounded-[2px] ring-1 ring-white/15"
+                    />
+                  )}
                 </div>
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
-                  <Timer size={14} className="mx-auto text-emerald-400" />
-                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Best lap</div>
-                  <div className="font-mono text-sm text-white">
-                    {stats?.best_lap != null ? formatLap(stats.best_lap) : '—'}
+
+                <div>
+                  <div className="font-sans text-sm font-medium text-zinc-400">{d.first_name}</div>
+                  <div className="font-display text-3xl font-bold uppercase leading-none tracking-wide text-white">
+                    {d.last_name}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    <img
+                      src={teamLogo(d.team_name)}
+                      alt=""
+                      className="h-4 w-auto max-w-[28px] object-contain"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                    {d.team_name}
                   </div>
                 </div>
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5">
-                  <Wrench size={14} className="mx-auto text-sky-400" />
-                  <div className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500">Pits</div>
-                  <div className="font-mono text-base text-white">{stats?.pit_stops ?? 0}</div>
-                </div>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

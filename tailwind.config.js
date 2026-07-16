@@ -4,29 +4,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // F1 brand: near-black navy background, layered surfaces, signature red.
-        base: '#15151e',
-        panel: '#1f1f27',
-        carbon: '#0d0d12',
-        accent: '#e10600', // F1 red
-        'accent-soft': '#ff2b20', // brighter red for text/lines on dark
+        // Deep, slightly-cool near-black with layered surfaces.
+        carbon: '#08080b',
+        base: '#0b0b10',
+        panel: '#131319',
+        elevated: '#1b1b23',
+        // F1 red + a hot variant for glows/hovers.
+        accent: '#e10600',
+        'accent-bright': '#ff2d1a',
+        'accent-soft': '#ff2d1a',
       },
       fontFamily: {
-        // Titillium Web is Formula 1's brand typeface (free / open source).
-        sans: ['Titillium Web', 'system-ui', 'sans-serif'],
+        // Saira Condensed = F1 timing-tower display; Saira = sporty body; mono for data.
+        display: ['Saira Condensed', 'Saira', 'system-ui', 'sans-serif'],
+        sans: ['Saira', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
-        soft: '0 10px 40px -12px rgba(0,0,0,0.7)',
+        soft: '0 12px 44px -14px rgba(0,0,0,0.75)',
+        glow: '0 0 24px -4px rgba(225,6,0,0.45)',
+      },
+      backgroundImage: {
+        'red-sheen': 'linear-gradient(120deg, rgba(225,6,0,0.14), transparent 45%)',
       },
       keyframes: {
         'fade-in': {
-          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       animation: {
-        'fade-in': 'fade-in 0.4s ease-out both',
+        'fade-in': 'fade-in 0.45s ease-out both',
       },
     },
   },
